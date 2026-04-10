@@ -24,19 +24,24 @@ body{
 
 /* CONTAINER */
 .container{
-    max-width:1100px;
+    max-width:1200px;
     margin:auto;
     padding:20px;
 }
 
-/* SEARCH */
-input{
-    width:100%;
-    padding:14px;
-    border-radius:12px;
-    border:none;
-    font-size:16px;
+/* FILTER BAR */
+.filter-bar{
+    display:flex;
+    gap:10px;
     margin-bottom:20px;
+    flex-wrap:wrap;
+}
+
+input, select{
+    padding:12px;
+    border-radius:10px;
+    border:none;
+    font-size:14px;
 }
 
 /* CARD */
@@ -45,29 +50,32 @@ input{
     border-radius:15px;
     margin-bottom:15px;
     overflow:hidden;
-    box-shadow:0 10px 30px rgba(0,0,0,0.4);
 }
 
-/* CARD HEADER */
+/* HEADER CARD */
 .card-header{
     padding:15px;
     cursor:pointer;
-    background: linear-gradient(90deg,#1e293b,#0f172a);
     display:flex;
     justify-content:space-between;
     align-items:center;
-}
-
-.card-header:hover{
     background:#1e293b;
 }
 
-.title{
+/* STATUS BADGE */
+.status{
+    padding:5px 10px;
+    border-radius:20px;
+    font-size:12px;
     font-weight:bold;
-    font-size:16px;
 }
 
-/* CARD BODY */
+/* COLOR STATUS */
+.open{ background:#dc2626; }
+.close{ background:#16a34a; }
+.progress{ background:#f59e0b; }
+
+/* BODY */
 .card-body{
     display:none;
     padding:15px;
@@ -76,11 +84,10 @@ input{
 /* GRID */
 .grid{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
     gap:10px;
 }
 
-/* FIELD */
 .field{
     background:rgba(255,255,255,0.05);
     padding:10px;
@@ -101,11 +108,8 @@ input{
 mark{
     background:#00c6ff;
     color:black;
-    padding:2px 4px;
-    border-radius:4px;
 }
 
-/* EMPTY */
 .empty{
     text-align:center;
     padding:20px;
@@ -116,13 +120,26 @@ mark{
 
 <body>
 
-<div class="header">
-SuperGO Monitoring System
-</div>
+<div class="header">SuperGO Monitoring Dashboard</div>
 
 <div class="container">
 
+<div class="filter-bar">
+
 <input type="text" id="search" placeholder="Cari Key Req...">
+
+<select id="statusFilter">
+<option value="">All Status</option>
+<option value="open">Open</option>
+<option value="close">Close</option>
+<option value="progress">Progress</option>
+</select>
+
+<select id="picFilter">
+<option value="">All PIC</option>
+</select>
+
+</div>
 
 <div id="output"></div>
 
@@ -136,72 +153,114 @@ let data=[];
 
 fetch(url)
 .then(res=>res.json())
-.then(json=> data=json);
+.then(json=>{
+    data=json;
+    initPIC();
+});
 
-/* REALTIME SEARCH */
+/* INIT PIC FILTER */
+function initPIC(){
+
+const picSet=new Set();
+
+data.forEach(row=>{
+    if(row["PIC"]) picSet.add(row["PIC"]);
+});
+
+const picFilter=document.getElementById("picFilter");
+
+picSet.forEach(pic=>{
+    picFilter.innerHTML += `<option value="${pic}">${pic}</option>`;
+});
+
+}
+
+/* EVENT */
 document.getElementById("search").addEventListener("input", searchData);
+document.getElementById("statusFilter").addEventListener("change", searchData);
+document.getElementById("picFilter").addEventListener("change", searchData);
 
-function highlight(text, keyword){
-    if(!text) return "";
-    const regex = new RegExp(`(${keyword})`, "gi");
-    return text.toString().replace(regex, "<mark>$1</mark>");
+function getStatusClass(status){
+
+if(!status) return "";
+
+status=status.toLowerCase();
+
+if(status.includes("open")) return "open";
+if(status.includes("close")) return "close";
+if(status.includes("progress")) return "progress";
+
+return "";
 }
 
 function toggleCard(id){
-    const el=document.getElementById(id);
-    el.style.display = el.style.display === "block" ? "none" : "block";
+const el=document.getElementById(id);
+el.style.display = el.style.display==="block" ? "none":"block";
+}
+
+function highlight(text, keyword){
+if(!text) return "";
+const regex = new RegExp(`(${keyword})`, "gi");
+return text.toString().replace(regex, "<mark>$1</mark>");
 }
 
 function searchData(){
 
-const keyword=document.getElementById("search").value.toLowerCase().trim();
+const keyword=document.getElementById("search").value.toLowerCase();
+const statusFilter=document.getElementById("statusFilter").value;
+const picFilter=document.getElementById("picFilter").value;
+
 const output=document.getElementById("output");
 
-if(!keyword){
-    output.innerHTML="";
-    return;
-}
+let results=data.filter(row=>{
 
-const results=data.filter(row=>
-row["Key Req"] && row["Key Req"].toLowerCase().includes(keyword)
-);
+let matchKey = row["Key Req"] && row["Key Req"].toLowerCase().includes(keyword);
+
+let matchStatus = !statusFilter || (row["STATUS"] && row["STATUS"].toLowerCase().includes(statusFilter));
+
+let matchPIC = !picFilter || row["PIC"]===picFilter;
+
+return matchKey && matchStatus && matchPIC;
+
+});
 
 if(results.length===0){
-    output.innerHTML="<div class='empty'>Data tidak ditemukan</div>";
-    return;
+output.innerHTML="<div class='empty'>Data tidak ditemukan</div>";
+return;
 }
 
 let html="";
 
-results.forEach((row,index)=>{
+results.forEach((row,i)=>{
 
 const headers=Object.keys(row);
-const mainTitle = row["Key Req"] || "No Title";
+const status=row["STATUS"] || "";
 
 html+=`
 <div class="card">
 
-<div class="card-header" onclick="toggleCard('card${index}')">
-<div class="title">${highlight(mainTitle, keyword)}</div>
-<div>▼</div>
+<div class="card-header" onclick="toggleCard('c${i}')">
+
+<div>${highlight(row["Key Req"], keyword)}</div>
+
+<div class="status ${getStatusClass(status)}">
+${status}
 </div>
 
-<div class="card-body" id="card${index}">
+</div>
+
+<div class="card-body" id="c${i}">
 <div class="grid">
 `;
 
-for(let i=1;i<=21;i++){
-
-if(headers[i]){
+for(let i=1;i<headers.length;i++){
 
 html+=`
 <div class="field">
 <div class="label">${headers[i]}</div>
-<div class="value">${highlight(row[headers[i]], keyword)}</div>
+<div class="value">${row[headers[i]]}</div>
 </div>
 `;
-
-}
 
 }
 
