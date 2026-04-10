@@ -33,6 +33,18 @@ input{
     border-radius:12px;
     border:none;
     font-size:16px;
+    margin-bottom:10px;
+}
+
+/* BUTTON */
+.btn{
+    padding:10px 20px;
+    border:none;
+    border-radius:10px;
+    background:#f59e0b;
+    color:black;
+    font-weight:bold;
+    cursor:pointer;
     margin-bottom:20px;
 }
 
@@ -53,7 +65,6 @@ input{
     background:#1e293b;
 }
 
-/* STATUS */
 .status{
     padding:5px 10px;
     border-radius:20px;
@@ -65,7 +76,6 @@ input{
 .close{ background:#16a34a; }
 .progress{ background:#f59e0b; }
 
-/* BODY */
 .card-body{
     display:none;
     padding:15px;
@@ -98,6 +108,12 @@ mark{
     color:black;
 }
 
+.group-title{
+    margin:20px 0 10px;
+    font-weight:bold;
+    color:#38bdf8;
+}
+
 .empty{
     text-align:center;
     padding:20px;
@@ -114,6 +130,8 @@ mark{
 
 <input type="text" id="search" placeholder="Cari Key Req...">
 
+<button class="btn" onclick="findDuplicate()">Cek Data Double</button>
+
 <div id="output"></div>
 
 </div>
@@ -123,12 +141,10 @@ mark{
 const url="https://opensheet.elk.sh/1pNRYXT72zR8TVWw40r26Ag9p7BDvGD8HzW09cKpE6QU/MONITORING";
 
 let data=[];
-
-/* 🔥 AUTO DETECT KOLOM */
 let keyColumn="";
 let statusColumn="";
-let picColumn="";
 
+/* LOAD DATA */
 fetch(url)
 .then(res=>res.json())
 .then(json=>{
@@ -141,19 +157,15 @@ fetch(url)
 
         if(name.includes("key")) keyColumn=h;
         if(name.includes("status")) statusColumn=h;
-        if(name.includes("pic")) picColumn=h;
     });
-
 });
 
-/* REALTIME SEARCH */
+/* SEARCH */
 document.getElementById("search").addEventListener("input", searchData);
 
 function getStatusClass(status){
-
 if(!status) return "";
-
-status=status.toLowerCase();
+status=status.toString().toLowerCase();
 
 if(status.includes("open")) return "open";
 if(status.includes("close")) return "close";
@@ -184,8 +196,8 @@ return;
 }
 
 const results=data.filter(row=>{
-const keyVal = row[keyColumn];
-return keyVal && keyVal.toLowerCase().includes(keyword);
+const keyVal=row[keyColumn];
+return keyVal && keyVal.toString().toLowerCase().includes(keyword);
 });
 
 if(results.length===0){
@@ -193,27 +205,86 @@ output.innerHTML="<div class='empty'>Data tidak ditemukan</div>";
 return;
 }
 
+renderCards(results, keyword);
+
+}
+
+/* DUPLICATE LOGIC */
+function getKeyBase(value){
+if(!value) return "";
+const clean=value.toString().replace(/[^0-9]/g,"");
+return clean.substring(0,6);
+}
+
+function findDuplicate(){
+
+const output=document.getElementById("output");
+
+let groups={};
+
+data.forEach(row=>{
+
+const keyVal=row[keyColumn];
+const base=getKeyBase(keyVal);
+
+if(!base) return;
+
+if(!groups[base]) groups[base]=[];
+
+groups[base].push(row);
+
+});
+
+let duplicates=Object.keys(groups).filter(k=>groups[k].length>1);
+
+if(duplicates.length===0){
+output.innerHTML="<div class='empty'>Tidak ada data double</div>";
+return;
+}
+
 let html="";
 
-results.forEach((row,i)=>{
+duplicates.forEach((base,i)=>{
+
+html+=`<div class="group-title">Group: ${base}</div>`;
+
+groups[base].forEach((row,index)=>{
+html+=createCard(row, `dup${i}_${index}`, "");
+});
+
+});
+
+output.innerHTML=html;
+
+}
+
+/* RENDER CARD */
+function renderCards(rows, keyword){
+const output=document.getElementById("output");
+
+let html="";
+
+rows.forEach((row,i)=>{
+html+=createCard(row, "s"+i, keyword);
+});
+
+output.innerHTML=html;
+}
+
+function createCard(row,id,keyword){
 
 const headers=Object.keys(row);
 const status=row[statusColumn] || "";
 
-html+=`
+let html=`
 <div class="card">
 
-<div class="card-header" onclick="toggleCard('c${i}')">
-
+<div class="card-header" onclick="toggleCard('${id}')">
 <div>${highlight(row[keyColumn], keyword)}</div>
-
-<div class="status ${getStatusClass(status)}">
-${status || "-"}
+<div class="status ${getStatusClass(status)}">${status || "-"}</div>
 </div>
 
-</div>
-
-<div class="card-body" id="c${i}">
+<div class="card-body" id="${id}">
 <div class="grid">
 `;
 
@@ -232,9 +303,7 @@ html+=`
 </div>
 `;
 
-});
-
-output.innerHTML=html;
+return html;
 
 }
 
