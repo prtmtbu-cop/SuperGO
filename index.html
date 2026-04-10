@@ -31,28 +31,15 @@ body{
 
 /* SEARCH */
 .search-box{
-    display:flex;
-    gap:10px;
     margin-bottom:20px;
 }
 
 input{
-    flex:1;
+    width:100%;
     padding:14px;
     border-radius:12px;
     border:none;
     font-size:16px;
-    outline:none;
-}
-
-button{
-    padding:14px 25px;
-    border:none;
-    border-radius:12px;
-    background: linear-gradient(to right,#00c6ff,#0072ff);
-    color:white;
-    font-weight:bold;
-    cursor:pointer;
 }
 
 /* RESULT COUNT */
@@ -69,11 +56,13 @@ button{
     border-radius:15px;
     backdrop-filter: blur(10px);
     box-shadow:0 10px 30px rgba(0,0,0,0.4);
-    transition:0.3s;
+    animation:fadeIn 0.3s ease;
 }
 
-.card:hover{
-    transform:translateY(-5px);
+/* ANIMATION */
+@keyframes fadeIn{
+    from{opacity:0; transform:translateY(10px);}
+    to{opacity:1; transform:translateY(0);}
 }
 
 /* FIELD */
@@ -91,13 +80,20 @@ button{
     font-weight:bold;
 }
 
+/* HIGHLIGHT */
+mark{
+    background:#00c6ff;
+    color:black;
+    padding:2px 4px;
+    border-radius:4px;
+}
+
 /* LOADING */
 .loading{
     text-align:center;
     margin-top:20px;
 }
 
-/* EMPTY */
 .empty{
     text-align:center;
     padding:20px;
@@ -115,8 +111,7 @@ SuperGO Monitoring System
 <div class="container">
 
 <div class="search-box">
-<input type="text" id="search" placeholder="Masukkan Key Req...">
-<button onclick="searchData()">Search</button>
+<input type="text" id="search" placeholder="Ketik Key Req... (realtime)">
 </div>
 
 <div id="loading" class="loading">Loading data...</div>
@@ -138,10 +133,14 @@ fetch(url)
     document.getElementById("loading").style.display="none";
 });
 
-/* ENTER = SEARCH */
-document.getElementById("search").addEventListener("keypress",function(e){
-    if(e.key==="Enter") searchData();
-});
+/* REALTIME SEARCH */
+document.getElementById("search").addEventListener("input", searchData);
+
+function highlight(text, keyword){
+    if(!text) return "";
+    const regex = new RegExp(`(${keyword})`, "gi");
+    return text.toString().replace(regex, "<mark>$1</mark>");
+}
 
 function searchData(){
 
@@ -150,12 +149,11 @@ const output=document.getElementById("output");
 const resultCount=document.getElementById("resultCount");
 
 if(!keyword){
-    output.innerHTML="<div class='empty'>Masukkan kata kunci</div>";
+    output.innerHTML="";
     resultCount.innerHTML="";
     return;
 }
 
-/* 🔥 FIX DI SINI → pakai "Key Req" */
 const results=data.filter(row=>
 row["Key Req"] && row["Key Req"].toLowerCase().includes(keyword)
 );
@@ -176,7 +174,6 @@ const headers=Object.keys(row);
 
 html+="<div class='card'>";
 
-/* tampilkan kolom B sampai V */
 for(let i=1;i<=21;i++){
 
 if(headers[i]){
@@ -184,7 +181,7 @@ if(headers[i]){
 html+=`
 <div class="field">
 <div class="label">${headers[i]}</div>
-<div class="value">${row[headers[i]]}</div>
+<div class="value">${highlight(row[headers[i]], keyword)}</div>
 </div>
 `;
 
