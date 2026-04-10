@@ -9,7 +9,7 @@
 body{
     margin:0;
     font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg,#0f172a,#1e293b,#020617);
+    background: linear-gradient(135deg,#0f172a,#020617);
     color:white;
 }
 
@@ -24,59 +24,76 @@ body{
 
 /* CONTAINER */
 .container{
-    max-width:1000px;
+    max-width:1100px;
     margin:auto;
     padding:20px;
 }
 
 /* SEARCH */
-.search-box{
-    margin-bottom:20px;
-}
-
 input{
     width:100%;
     padding:14px;
     border-radius:12px;
     border:none;
     font-size:16px;
-}
-
-/* RESULT COUNT */
-.result-count{
-    margin-bottom:15px;
-    color:#94a3b8;
+    margin-bottom:20px;
 }
 
 /* CARD */
 .card{
     background: rgba(255,255,255,0.05);
-    padding:20px;
-    margin-bottom:15px;
     border-radius:15px;
-    backdrop-filter: blur(10px);
+    margin-bottom:15px;
+    overflow:hidden;
     box-shadow:0 10px 30px rgba(0,0,0,0.4);
-    animation:fadeIn 0.3s ease;
 }
 
-/* ANIMATION */
-@keyframes fadeIn{
-    from{opacity:0; transform:translateY(10px);}
-    to{opacity:1; transform:translateY(0);}
+/* CARD HEADER */
+.card-header{
+    padding:15px;
+    cursor:pointer;
+    background: linear-gradient(90deg,#1e293b,#0f172a);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.card-header:hover{
+    background:#1e293b;
+}
+
+.title{
+    font-weight:bold;
+    font-size:16px;
+}
+
+/* CARD BODY */
+.card-body{
+    display:none;
+    padding:15px;
+}
+
+/* GRID */
+.grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
 }
 
 /* FIELD */
 .field{
-    margin-bottom:10px;
+    background:rgba(255,255,255,0.05);
+    padding:10px;
+    border-radius:10px;
 }
 
 .label{
-    font-size:12px;
+    font-size:11px;
     color:#94a3b8;
 }
 
 .value{
-    font-size:15px;
+    font-size:14px;
     font-weight:bold;
 }
 
@@ -88,12 +105,7 @@ mark{
     border-radius:4px;
 }
 
-/* LOADING */
-.loading{
-    text-align:center;
-    margin-top:20px;
-}
-
+/* EMPTY */
 .empty{
     text-align:center;
     padding:20px;
@@ -110,12 +122,8 @@ SuperGO Monitoring System
 
 <div class="container">
 
-<div class="search-box">
-<input type="text" id="search" placeholder="Ketik Key Req... (realtime)">
-</div>
+<input type="text" id="search" placeholder="Cari Key Req...">
 
-<div id="loading" class="loading">Loading data...</div>
-<div id="resultCount" class="result-count"></div>
 <div id="output"></div>
 
 </div>
@@ -128,10 +136,7 @@ let data=[];
 
 fetch(url)
 .then(res=>res.json())
-.then(json=>{
-    data=json;
-    document.getElementById("loading").style.display="none";
-});
+.then(json=> data=json);
 
 /* REALTIME SEARCH */
 document.getElementById("search").addEventListener("input", searchData);
@@ -142,15 +147,18 @@ function highlight(text, keyword){
     return text.toString().replace(regex, "<mark>$1</mark>");
 }
 
+function toggleCard(id){
+    const el=document.getElementById(id);
+    el.style.display = el.style.display === "block" ? "none" : "block";
+}
+
 function searchData(){
 
 const keyword=document.getElementById("search").value.toLowerCase().trim();
 const output=document.getElementById("output");
-const resultCount=document.getElementById("resultCount");
 
 if(!keyword){
     output.innerHTML="";
-    resultCount.innerHTML="";
     return;
 }
 
@@ -160,19 +168,27 @@ row["Key Req"] && row["Key Req"].toLowerCase().includes(keyword)
 
 if(results.length===0){
     output.innerHTML="<div class='empty'>Data tidak ditemukan</div>";
-    resultCount.innerHTML="";
     return;
 }
 
-resultCount.innerHTML="Ditemukan "+results.length+" data";
-
 let html="";
 
-results.forEach(row=>{
+results.forEach((row,index)=>{
 
 const headers=Object.keys(row);
+const mainTitle = row["Key Req"] || "No Title";
 
-html+="<div class='card'>";
+html+=`
+<div class="card">
+
+<div class="card-header" onclick="toggleCard('card${index}')">
+<div class="title">${highlight(mainTitle, keyword)}</div>
+<div>▼</div>
+</div>
+
+<div class="card-body" id="card${index}">
+<div class="grid">
+`;
 
 for(let i=1;i<=21;i++){
 
@@ -189,7 +205,11 @@ html+=`
 
 }
 
-html+="</div>";
+html+=`
+</div>
+</div>
+</div>
+`;
 
 });
 
