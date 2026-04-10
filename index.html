@@ -13,7 +13,6 @@ body{
     color:white;
 }
 
-/* HEADER */
 .header{
     padding:20px;
     text-align:center;
@@ -22,26 +21,19 @@ body{
     font-weight:bold;
 }
 
-/* CONTAINER */
 .container{
-    max-width:1200px;
+    max-width:1100px;
     margin:auto;
     padding:20px;
 }
 
-/* FILTER BAR */
-.filter-bar{
-    display:flex;
-    gap:10px;
-    margin-bottom:20px;
-    flex-wrap:wrap;
-}
-
-input, select{
-    padding:12px;
-    border-radius:10px;
+input{
+    width:100%;
+    padding:14px;
+    border-radius:12px;
     border:none;
-    font-size:14px;
+    font-size:16px;
+    margin-bottom:20px;
 }
 
 /* CARD */
@@ -52,7 +44,6 @@ input, select{
     overflow:hidden;
 }
 
-/* HEADER CARD */
 .card-header{
     padding:15px;
     cursor:pointer;
@@ -62,7 +53,7 @@ input, select{
     background:#1e293b;
 }
 
-/* STATUS BADGE */
+/* STATUS */
 .status{
     padding:5px 10px;
     border-radius:20px;
@@ -70,7 +61,6 @@ input, select{
     font-weight:bold;
 }
 
-/* COLOR STATUS */
 .open{ background:#dc2626; }
 .close{ background:#16a34a; }
 .progress{ background:#f59e0b; }
@@ -81,7 +71,6 @@ input, select{
     padding:15px;
 }
 
-/* GRID */
 .grid{
     display:grid;
     grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
@@ -104,7 +93,6 @@ input, select{
     font-weight:bold;
 }
 
-/* HIGHLIGHT */
 mark{
     background:#00c6ff;
     color:black;
@@ -124,22 +112,7 @@ mark{
 
 <div class="container">
 
-<div class="filter-bar">
-
 <input type="text" id="search" placeholder="Cari Key Req...">
-
-<select id="statusFilter">
-<option value="">All Status</option>
-<option value="open">Open</option>
-<option value="close">Close</option>
-<option value="progress">Progress</option>
-</select>
-
-<select id="picFilter">
-<option value="">All PIC</option>
-</select>
-
-</div>
 
 <div id="output"></div>
 
@@ -151,34 +124,30 @@ const url="https://opensheet.elk.sh/1pNRYXT72zR8TVWw40r26Ag9p7BDvGD8HzW09cKpE6QU
 
 let data=[];
 
+/* 🔥 AUTO DETECT KOLOM */
+let keyColumn="";
+let statusColumn="";
+let picColumn="";
+
 fetch(url)
 .then(res=>res.json())
 .then(json=>{
     data=json;
-    initPIC();
+
+    const headers=Object.keys(data[0]);
+
+    headers.forEach(h=>{
+        const name=h.toLowerCase().trim();
+
+        if(name.includes("key")) keyColumn=h;
+        if(name.includes("status")) statusColumn=h;
+        if(name.includes("pic")) picColumn=h;
+    });
+
 });
 
-/* INIT PIC FILTER */
-function initPIC(){
-
-const picSet=new Set();
-
-data.forEach(row=>{
-    if(row["PIC"]) picSet.add(row["PIC"]);
-});
-
-const picFilter=document.getElementById("picFilter");
-
-picSet.forEach(pic=>{
-    picFilter.innerHTML += `<option value="${pic}">${pic}</option>`;
-});
-
-}
-
-/* EVENT */
+/* REALTIME SEARCH */
 document.getElementById("search").addEventListener("input", searchData);
-document.getElementById("statusFilter").addEventListener("change", searchData);
-document.getElementById("picFilter").addEventListener("change", searchData);
 
 function getStatusClass(status){
 
@@ -206,22 +175,17 @@ return text.toString().replace(regex, "<mark>$1</mark>");
 
 function searchData(){
 
-const keyword=document.getElementById("search").value.toLowerCase();
-const statusFilter=document.getElementById("statusFilter").value;
-const picFilter=document.getElementById("picFilter").value;
-
+const keyword=document.getElementById("search").value.toLowerCase().trim();
 const output=document.getElementById("output");
 
-let results=data.filter(row=>{
+if(!keyword){
+output.innerHTML="";
+return;
+}
 
-let matchKey = row["Key Req"] && row["Key Req"].toLowerCase().includes(keyword);
-
-let matchStatus = !statusFilter || (row["STATUS"] && row["STATUS"].toLowerCase().includes(statusFilter));
-
-let matchPIC = !picFilter || row["PIC"]===picFilter;
-
-return matchKey && matchStatus && matchPIC;
-
+const results=data.filter(row=>{
+const keyVal = row[keyColumn];
+return keyVal && keyVal.toLowerCase().includes(keyword);
 });
 
 if(results.length===0){
@@ -234,17 +198,17 @@ let html="";
 results.forEach((row,i)=>{
 
 const headers=Object.keys(row);
-const status=row["STATUS"] || "";
+const status=row[statusColumn] || "";
 
 html+=`
 <div class="card">
 
 <div class="card-header" onclick="toggleCard('c${i}')">
 
-<div>${highlight(row["Key Req"], keyword)}</div>
+<div>${highlight(row[keyColumn], keyword)}</div>
 
 <div class="status ${getStatusClass(status)}">
-${status}
+${status || "-"}
 </div>
 
 </div>
@@ -253,16 +217,14 @@ ${status}
 <div class="grid">
 `;
 
-for(let i=1;i<headers.length;i++){
-
+headers.forEach(h=>{
 html+=`
 <div class="field">
-<div class="label">${headers[i]}</div>
-<div class="value">${row[headers[i]]}</div>
+<div class="label">${h}</div>
+<div class="value">${row[h] || "-"}</div>
 </div>
 `;
-
-}
+});
 
 html+=`
 </div>
