@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Monitoring System</title>
+<title>SuperGO Monitoring</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -9,7 +9,7 @@
 body{
     margin:0;
     font-family: 'Segoe UI', sans-serif;
-    background:#0f172a;
+    background: linear-gradient(135deg,#0f172a,#1e293b,#020617);
     color:white;
 }
 
@@ -18,13 +18,14 @@ body{
     padding:20px;
     text-align:center;
     background: linear-gradient(90deg,#0ea5e9,#2563eb);
-    font-size:22px;
+    font-size:24px;
     font-weight:bold;
+    letter-spacing:1px;
 }
 
 /* CONTAINER */
 .container{
-    max-width:900px;
+    max-width:1000px;
     margin:auto;
     padding:20px;
 }
@@ -39,28 +40,45 @@ body{
 input{
     flex:1;
     padding:14px;
-    border-radius:10px;
+    border-radius:12px;
     border:none;
     font-size:16px;
+    outline:none;
 }
 
 button{
-    padding:14px 20px;
+    padding:14px 25px;
     border:none;
-    border-radius:10px;
-    background:#2563eb;
+    border-radius:12px;
+    background: linear-gradient(to right,#00c6ff,#0072ff);
     color:white;
     font-weight:bold;
     cursor:pointer;
 }
 
+button:hover{
+    transform:scale(1.05);
+}
+
+/* RESULT COUNT */
+.result-count{
+    margin-bottom:15px;
+    color:#94a3b8;
+}
+
 /* CARD */
 .card{
-    background:#1e293b;
+    background: rgba(255,255,255,0.05);
     padding:20px;
     margin-bottom:15px;
-    border-radius:12px;
-    box-shadow:0 5px 15px rgba(0,0,0,0.3);
+    border-radius:15px;
+    backdrop-filter: blur(10px);
+    box-shadow:0 10px 30px rgba(0,0,0,0.4);
+    transition:0.3s;
+}
+
+.card:hover{
+    transform:translateY(-5px);
 }
 
 /* FIELD */
@@ -78,9 +96,19 @@ button{
     font-weight:bold;
 }
 
+/* LOADING */
 .loading{
     text-align:center;
     margin-top:20px;
+    font-style:italic;
+}
+
+/* EMPTY */
+.empty{
+    text-align:center;
+    padding:20px;
+    background:#1e293b;
+    border-radius:10px;
 }
 
 </style>
@@ -89,7 +117,7 @@ button{
 <body>
 
 <div class="header">
-Monitoring System
+SuperGO Monitoring System
 </div>
 
 <div class="container">
@@ -100,6 +128,7 @@ Monitoring System
 </div>
 
 <div id="loading" class="loading">Loading data...</div>
+<div id="resultCount" class="result-count"></div>
 <div id="output"></div>
 
 </div>
@@ -117,6 +146,7 @@ fetch(url)
     document.getElementById("loading").style.display="none";
 });
 
+/* ENTER = SEARCH */
 document.getElementById("search").addEventListener("keypress",function(e){
     if(e.key==="Enter") searchData();
 });
@@ -124,17 +154,26 @@ document.getElementById("search").addEventListener("keypress",function(e){
 function searchData(){
 
 const keyword=document.getElementById("search").value.toLowerCase().trim();
+const output=document.getElementById("output");
+const resultCount=document.getElementById("resultCount");
+
+if(!keyword){
+    output.innerHTML="<div class='empty'>Masukkan kata kunci</div>";
+    resultCount.innerHTML="";
+    return;
+}
 
 const results=data.filter(row=>
 row["KEY"] && row["KEY"].toLowerCase().includes(keyword)
 );
 
-const output=document.getElementById("output");
-
 if(results.length===0){
-    output.innerHTML="<div class='card'>Data tidak ditemukan</div>";
+    output.innerHTML="<div class='empty'>Data tidak ditemukan</div>";
+    resultCount.innerHTML="";
     return;
 }
+
+resultCount.innerHTML="Ditemukan "+results.length+" data";
 
 let html="";
 
@@ -144,7 +183,7 @@ const headers=Object.keys(row);
 
 html+="<div class='card'>";
 
-/* mulai dari kolom B (index 1) sampai V */
+/* Kolom B sampai V */
 for(let i=1;i<=21;i++){
 
 if(headers[i]){
