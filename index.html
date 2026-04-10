@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
+
 body{
     margin:0;
     font-family: 'Segoe UI', sans-serif;
@@ -12,6 +13,7 @@ body{
     color:white;
 }
 
+/* HEADER */
 .header{
     padding:20px;
     text-align:center;
@@ -20,12 +22,14 @@ body{
     font-weight:bold;
 }
 
+/* CONTAINER */
 .container{
     max-width:1000px;
     margin:auto;
     padding:20px;
 }
 
+/* SEARCH */
 .search-box{
     display:flex;
     gap:10px;
@@ -38,6 +42,7 @@ input{
     border-radius:12px;
     border:none;
     font-size:16px;
+    outline:none;
 }
 
 button{
@@ -50,13 +55,28 @@ button{
     cursor:pointer;
 }
 
+/* RESULT COUNT */
+.result-count{
+    margin-bottom:15px;
+    color:#94a3b8;
+}
+
+/* CARD */
 .card{
     background: rgba(255,255,255,0.05);
     padding:20px;
     margin-bottom:15px;
     border-radius:15px;
+    backdrop-filter: blur(10px);
+    box-shadow:0 10px 30px rgba(0,0,0,0.4);
+    transition:0.3s;
 }
 
+.card:hover{
+    transform:translateY(-5px);
+}
+
+/* FIELD */
 .field{
     margin-bottom:10px;
 }
@@ -71,15 +91,18 @@ button{
     font-weight:bold;
 }
 
+/* LOADING */
 .loading{
     text-align:center;
     margin-top:20px;
 }
 
+/* EMPTY */
 .empty{
     text-align:center;
     padding:20px;
 }
+
 </style>
 </head>
 
@@ -92,11 +115,12 @@ SuperGO Monitoring System
 <div class="container">
 
 <div class="search-box">
-<input type="text" id="search" placeholder="Masukkan KEY...">
+<input type="text" id="search" placeholder="Masukkan Key Req...">
 <button onclick="searchData()">Search</button>
 </div>
 
 <div id="loading" class="loading">Loading data...</div>
+<div id="resultCount" class="result-count"></div>
 <div id="output"></div>
 
 </div>
@@ -114,20 +138,35 @@ fetch(url)
     document.getElementById("loading").style.display="none";
 });
 
+/* ENTER = SEARCH */
+document.getElementById("search").addEventListener("keypress",function(e){
+    if(e.key==="Enter") searchData();
+});
+
 function searchData(){
 
 const keyword=document.getElementById("search").value.toLowerCase().trim();
-
-const results=data.filter(row=>
-row["KEY"] && row["KEY"].toLowerCase().includes(keyword)
-);
-
 const output=document.getElementById("output");
+const resultCount=document.getElementById("resultCount");
+
+if(!keyword){
+    output.innerHTML="<div class='empty'>Masukkan kata kunci</div>";
+    resultCount.innerHTML="";
+    return;
+}
+
+/* 🔥 FIX DI SINI → pakai "Key Req" */
+const results=data.filter(row=>
+row["Key Req"] && row["Key Req"].toLowerCase().includes(keyword)
+);
 
 if(results.length===0){
     output.innerHTML="<div class='empty'>Data tidak ditemukan</div>";
+    resultCount.innerHTML="";
     return;
 }
+
+resultCount.innerHTML="Ditemukan "+results.length+" data";
 
 let html="";
 
@@ -137,6 +176,7 @@ const headers=Object.keys(row);
 
 html+="<div class='card'>";
 
+/* tampilkan kolom B sampai V */
 for(let i=1;i<=21;i++){
 
 if(headers[i]){
