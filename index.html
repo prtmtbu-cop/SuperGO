@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SuperGO Monitoring</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+    margin:0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg,#0f172a,#1e293b,#020617);
+    color:white;
+}
+
+.header{
+    padding:20px;
+    text-align:center;
+    background: linear-gradient(90deg,#0ea5e9,#2563eb);
+    font-size:24px;
+    font-weight:bold;
+}
+
+.container{
+    max-width:1000px;
+    margin:auto;
+    padding:20px;
+}
+
+.search-box{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+input{
+    flex:1;
+    padding:14px;
+    border-radius:12px;
+    border:none;
+    font-size:16px;
+}
+
+button{
+    padding:14px 25px;
+    border:none;
+    border-radius:12px;
+    background: linear-gradient(to right,#00c6ff,#0072ff);
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.card{
+    background: rgba(255,255,255,0.05);
+    padding:20px;
+    margin-bottom:15px;
+    border-radius:15px;
+}
+
+.field{
+    margin-bottom:10px;
+}
+
+.label{
+    font-size:12px;
+    color:#94a3b8;
+}
+
+.value{
+    font-size:15px;
+    font-weight:bold;
+}
+
+.loading{
+    text-align:center;
+    margin-top:20px;
+}
+
+.empty{
+    text-align:center;
+    padding:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+SuperGO Monitoring System
+</div>
+
+<div class="container">
+
+<div class="search-box">
+<input type="text" id="search" placeholder="Masukkan KEY...">
+<button onclick="searchData()">Search</button>
+</div>
+
+<div id="loading" class="loading">Loading data...</div>
+<div id="output"></div>
+
+</div>
+
+<script>
+
+const url="https://opensheet.elk.sh/1pNRYXT72zR8TVWw40r26Ag9p7BDvGD8HzW09cKpE6QU/MONITORING";
+
+let data=[];
+
+fetch(url)
+.then(res=>res.json())
+.then(json=>{
+    data=json;
+    document.getElementById("loading").style.display="none";
+});
+
+function searchData(){
+
+const keyword=document.getElementById("search").value.toLowerCase().trim();
+
+const results=data.filter(row=>
+row["KEY"] && row["KEY"].toLowerCase().includes(keyword)
+);
+
+const output=document.getElementById("output");
+
+if(results.length===0){
+    output.innerHTML="<div class='empty'>Data tidak ditemukan</div>";
+    return;
+}
+
+let html="";
+
+results.forEach(row=>{
+
+const headers=Object.keys(row);
+
+html+="<div class='card'>";
+
+for(let i=1;i<=21;i++){
+
+if(headers[i]){
+
+html+=`
+<div class="field">
+<div class="label">${headers[i]}</div>
+<div class="value">${row[headers[i]]}</div>
+</div>
+`;
+
+}
+
+}
+
+html+="</div>";
+
+});
+
+output.innerHTML=html;
+
+}
+
+</script>
+
+</body>
+</html>
